@@ -124,8 +124,8 @@ else:
         alt.Chart(data)
             .mark_bar(orient='horizontal')
             .encode(
-                x=alt.X('numPRs'),
-                y=alt.Y('authorName', sort='-x'),
+                x=alt.X('numPRs', title=None),
+                y=alt.Y('authorName', sort='-x', title=None),
             ),
             use_container_width=True
     )
@@ -165,8 +165,8 @@ else:
             .transform_fold(['changes', 'additions', 'deletions'])
             .mark_bar(orient='horizontal')
             .encode(
-                x=alt.X('value:Q', stack=False),
-                y=alt.Y('authorName', sort='-x'),
+                x=alt.X('value:Q', stack=False, title=None),
+                y=alt.Y('authorName', sort='-x', title=None),
                 color='key:N',
                 yOffset=alt.YOffset('key:N').sort(['changes', 'additions', 'deletions']),
             ),
