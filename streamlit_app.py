@@ -11,6 +11,47 @@ def set_page_icon(emoji):
         f'<b style="display: block; font-size: 4rem; line-height: 1; margin-bottom: -2rem">{emoji}</b>',
         unsafe_allow_html=True)
 
+class MetaParam(type):
+    def __getattr__(cls, k):
+        return Param(k)
+
+class Param(metaclass=MetaParam):
+    def __init__(self, k):
+        self.key = k
+
+    def int(self, fallback=0):
+        return int(float(self.get(fallback)))
+
+    def float(self, fallback=0.0):
+        return float(self.get(fallback))
+
+    def bool(self, fallback=False):
+        return bool(self.get(fallback))
+
+    def date(self, fallback=False):
+        param = self.get()
+
+        if param is None:
+            return fallback
+
+        return datetime.date.fromisoformat(param)
+
+    def str(self, fallback=''):
+        return self.get(fallback)
+
+    def get(self, fallback=None):
+        return getattr(st.query_params, self.key, fallback)
+
+    def set(self, v):
+        v_typed = v
+
+        if isinstance(v, datetime.date):
+            v_typed = v.isoformat()
+
+        st.query_params[self.key] = v_typed
+        return v
+
+
 set_page_icon(':twisted_rightwards_arrows:')
 
 '''
@@ -19,7 +60,8 @@ set_page_icon(':twisted_rightwards_arrows:')
 
 ''
 
-repo = st.text_input('Repo', 'streamlit/streamlit')
+repo = Param.repo.set(
+    st.text_input('Repo', Param.repo.str('streamlit/streamlit')))
 
 user_key = st.text_input(
     'GitHub API key (required for private repos)',
@@ -33,50 +75,52 @@ user_key = st.text_input(
         '''
 )
 
-def show_relative_date_picker():
-    TIME_PERIODS = {
-        'Last week': 7,
-        'Last 30 days': 30,
-        'Last 90 days': 90,
-        'Last 6 months': 30 * 6,
-        'Last year': 365,
-    }
-
-    period = st.selectbox('Time period', TIME_PERIODS)
-
-    to_date = datetime.date.today()
-    delta = datetime.timedelta(days=TIME_PERIODS[period])
-    st.session_state.delta = delta
-
-    from_date = to_date - delta
-
-    return str(from_date), str(to_date)
-
-def show_absolute_date_picker():
-    a, b = st.columns(2)
-
-    today = datetime.date.today()
-
-    if 'delta' in st.session_state:
-        delta = st.session_state.delta
-    else:
-        delta = datetime.timedelta(days=7)
-
-    from_date = a.date_input('From', today - delta)
-
-    to_date = b.date_input('To', today)
-
-    return str(from_date), str(to_date)
-
-
 date_picker_container = st.container()
 
-if st.toggle('Enter specific dates'):
+
+if Param.abs_dates.set(
+    st.toggle('Enter specific dates', Param.abs_dates.bool())):
+
     with date_picker_container:
-        from_date, to_date = show_absolute_date_picker()
+        a, b = st.columns(2)
+
+        today = datetime.date.today()
+
+        if 'delta' in st.session_state:
+            delta = st.session_state.delta
+        else:
+            delta = datetime.timedelta(days=7)
+
+        from_date = Param.from_date.set(
+            a.date_input('From', Param.from_date.date(today - delta)))
+
+        to_date = Param.to_date.set(
+            b.date_input('To', Param.to_date.date(today)))
+
 else:
     with date_picker_container:
-        from_date, to_date = show_relative_date_picker()
+        TIME_PERIODS = {
+            'Last week': 7,
+            'Last 30 days': 30,
+            'Last 90 days': 90,
+            'Last 6 months': 30 * 6,
+            'Last year': 365,
+        }
+
+        period_index = next((
+            i for i, v in enumerate(TIME_PERIODS.values())
+            if v == Param.time_period.int()), 0)
+
+        period = st.selectbox('Time period', TIME_PERIODS, period_index)
+
+        to_date = datetime.date.today()
+
+        days = Param.time_period.set(TIME_PERIODS[period])
+        delta = datetime.timedelta(days=days)
+
+        st.session_state.delta = delta
+
+        from_date = to_date - delta
 
 @st.cache_data(ttl='1d', show_spinner='Fetching data')
 def fetch_commits_cached(token, repo, from_date, to_date):
@@ -97,7 +141,7 @@ else:
 
 ''
 ''
-commits = fetch_commits_cached(token, repo, from_date, to_date)
+commits = fetch_commits_cached(token, repo, str(from_date), str(to_date))
 ''
 ''
 
