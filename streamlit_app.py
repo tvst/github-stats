@@ -26,7 +26,7 @@ class Param(metaclass=MetaParam):
         return float(self.get(fallback))
 
     def bool(self, fallback=False):
-        return bool(self.get(fallback))
+        return bool(self.get(fallback) == 'True')
 
     def date(self, fallback=False):
         param = self.get()
