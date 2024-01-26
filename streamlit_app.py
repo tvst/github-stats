@@ -42,7 +42,8 @@ class Param(metaclass=MetaParam):
     def get(self, fallback=None):
         return getattr(st.query_params, self.key, fallback)
 
-    def set(self, v):
+    def set(self):
+        v = st.session_state[self.key]
         v_typed = v
 
         if isinstance(v, datetime.date):
@@ -60,8 +61,9 @@ set_page_icon(':twisted_rightwards_arrows:')
 
 ''
 
-repo = Param.repo.set(
-    st.text_input('Repo', Param.repo.str('streamlit/streamlit')))
+repo = st.text_input(
+    'Repo', Param.repo.str('streamlit/streamlit'),
+    on_change=Param.repo.set, key='repo')
 
 user_key = st.text_input(
     'GitHub API key (required for private repos)',
@@ -77,9 +79,9 @@ user_key = st.text_input(
 
 date_picker_container = st.container()
 
-
-if Param.abs_dates.set(
-    st.toggle('Enter specific dates', Param.abs_dates.bool())):
+if st.toggle(
+    'Enter specific dates', Param.abs_dates.bool(),
+    on_change=Param.abs_dates.set, key='abs_dates'):
 
     with date_picker_container:
         a, b = st.columns(2)
@@ -91,11 +93,13 @@ if Param.abs_dates.set(
         else:
             delta = datetime.timedelta(days=7)
 
-        from_date = Param.from_date.set(
-            a.date_input('From', Param.from_date.date(today - delta)))
+        from_date = a.date_input(
+            'From', Param.from_date.date(today - delta),
+            on_change=Param.from_date.set, key='from_date')
 
-        to_date = Param.to_date.set(
-            b.date_input('To', Param.to_date.date(today)))
+        to_date = b.date_input(
+            'To', Param.to_date.date(today),
+            on_change=Param.to_date.set, key='to_date')
 
 else:
     with date_picker_container:
@@ -108,14 +112,16 @@ else:
         }
 
         period_index = next((
-            i for i, v in enumerate(TIME_PERIODS.values())
-            if v == Param.time_period.int()), 0)
+            i for i, k in enumerate(TIME_PERIODS.keys())
+            if k == Param.time_period), 0)
 
-        period = st.selectbox('Time period', TIME_PERIODS, period_index)
+        time_period = st.selectbox(
+            'Time period', TIME_PERIODS, period_index,
+            on_change=Param.time_period.set, key='time_period')
 
         to_date = datetime.date.today()
 
-        days = Param.time_period.set(TIME_PERIODS[period])
+        days = TIME_PERIODS[time_period]
         delta = datetime.timedelta(days=days)
 
         st.session_state.delta = delta
