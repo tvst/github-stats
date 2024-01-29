@@ -4,12 +4,17 @@ import polars as pl
 import datetime
 import altair as alt
 
-def set_page_icon(emoji):
-    st.set_page_config(page_icon=emoji)
+def set_page_header(title, emoji):
+    st.set_page_config(
+        page_title=title,
+        page_icon=emoji,
+    )
 
     st.markdown(
         f'<b style="display: block; font-size: 4rem; line-height: 1; margin-bottom: -2rem">{emoji}</b>',
         unsafe_allow_html=True)
+
+    st.title(title)
 
 class MetaParam(type):
     def __getattr__(cls, k):
@@ -53,11 +58,10 @@ class Param(metaclass=MetaParam):
         return v
 
 
-set_page_icon(':twisted_rightwards_arrows:')
-
-'''
-# Github contributor stats
-'''
+set_page_header(
+    'Github contributor stats',
+    ':twisted_rightwards_arrows:',
+)
 
 ''
 
@@ -174,8 +178,8 @@ else:
         alt.Chart(data)
             .mark_bar(orient='horizontal')
             .encode(
-                x=alt.X('numPRs', title=None),
-                y=alt.Y('authorName', sort='-x', title=None),
+                x=alt.X('numPRs:Q', title=None),
+                y=alt.Y('authorName:N', sort='-x', title=None),
             ),
             use_container_width=True
     )
